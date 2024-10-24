@@ -1,0 +1,3 @@
+void setupSerial();
+
+void loopSerial();
