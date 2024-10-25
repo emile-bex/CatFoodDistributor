@@ -2,4 +2,4 @@ void setupSocket();
 
 void loopSocket();
 
-void sendMessage(const StaticJsonDocument<64> &json);
+void sendMessage(String eventType, const StaticJsonDocument<64> &json);

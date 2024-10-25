@@ -6,7 +6,6 @@
 #include <constants.h>
 #include <secrets.h>
 #include <wifi.h>
-#include "../.pio/libdeps/nodemcu/WebSockets/src/SocketIOclient.h"
 
 char key[] = SECRET;
 
@@ -14,11 +13,11 @@ CustomJWT jwt(key, 256);
 
 SocketIOclient socketIO;
 
-void sendMessage(const StaticJsonDocument<64> &json) {
+void sendMessage(String eventType, const StaticJsonDocument<64> &json = {}) {
   StaticJsonDocument<64> doc;
 
-  doc[0] = "event_name";
-  doc[1] =json;
+  doc[0] = eventType;
+  doc[1] = json;
 
   String output = "";
   serializeJson(doc, output);
@@ -44,11 +43,7 @@ void onMessageCallback(String eventType, String message) {
   if (eventType == SERVE_FOOD) {
     moveServo();
 
-    StaticJsonDocument<64> foodServedConfirmationEvent;
-
-    foodServedConfirmationEvent["event"] = FOOD_SERVED;
-
-    sendMessage(foodServedConfirmationEvent);
+    sendMessage(FOOD_SERVED);
   }
 }
 
@@ -119,7 +114,7 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) 
 
 void setupSocket() {
   StaticJsonDocument<64> idJWT;
-  idJWT["id"] = getMacAddress();
+  idJWT["sub"] = getMacAddress();
 
   String jwtObject = "";
   serializeJson(idJWT, jwtObject);
@@ -137,14 +132,6 @@ void setupSocket() {
   Serial.printf("Payload: %s\nPayload Length: %d\n", jwt.payload, jwt.payloadLength);
   Serial.printf("Signature: %s\nSignature Length: %d\n", jwt.signature, jwt.signatureLength);
   Serial.printf("Final Output: %s\nFinalOutput Length: %d\n", jwt.out, jwt.outputLength);
-
-
-/*  StaticJsonDocument<64> identificationEvent;
-
-  identificationEvent["event"] = IDENTIFICATION;
-  identificationEvent["data"] = jwt.payload;
-
-  sendMessage(identificationEvent);*/
 
   const String port = SOCKET_PORT;
 

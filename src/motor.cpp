@@ -15,13 +15,11 @@ void setupServo() {
 void moveServo() {
   for (position = SERVO_MIN; position <= SERVO_MAX; position += 1) {
     servo.write(position);
-    Serial.println("Position: " + position);
     delay(15);
   }
   delay(2000);
   for (position = SERVO_MAX; position >= SERVO_MIN; position -= 1) {
     servo.write(position);
-    Serial.println("Position: " + position);
     delay(15);
   }
 }
