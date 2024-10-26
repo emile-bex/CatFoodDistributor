@@ -13,25 +13,22 @@ CustomJWT jwt(key, 256);
 
 SocketIOclient socketIO;
 
-void sendMessage(String eventType, const StaticJsonDocument<64> &json = {}) {
-  StaticJsonDocument<64> doc;
+void sendMessage(const String eventType, const JsonObject json) {
+  JsonDocument doc;
+  JsonArray array = doc.to<JsonArray>();
 
-  doc[0] = eventType;
-  doc[1] = json;
+  array.add(eventType);
+  array.add(json);
 
   String output = "";
   serializeJson(doc, output);
 
   socketIO.sendEVENT(output);
 
-  Serial.println("Sent : " + output);
+  Serial.println("[IOc] send event: " + output);
 }
 
-void onMessageCallback(String eventType, String message) {
-  StaticJsonDocument<64> payload;
-
-  deserializeJson(payload, message);
-
+void onMessageCallback(const String eventType, const JsonObject payload) {
   if (eventType == IDENTIFICATION_SUCCESS) {
     Serial.println("Successfully identified");
   }
@@ -41,9 +38,10 @@ void onMessageCallback(String eventType, String message) {
   }
 
   if (eventType == SERVE_FOOD) {
+    const char *foodServingId = payload["foodServingId"];
+    Serial.printf("[IOc] %s event with foodServingId = %s\n", SERVE_FOOD, foodServingId);
     moveServo();
-
-    sendMessage(FOOD_SERVED);
+    sendMessage(FOOD_SERVED_CONFIRMATION, payload);
   }
 }
 
@@ -65,7 +63,7 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) 
       if (id) {
         payload = (uint8_t *) sptr;
       }
-      DynamicJsonDocument doc(1024);
+      JsonDocument doc;
       DeserializationError error = deserializeJson(doc, payload, length);
       if (error) {
         Serial.print(F("deserializeJson() failed: "));
@@ -74,16 +72,17 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) 
       }
 
       String eventName = doc[0];
+      JsonObject data = doc[1];
       Serial.printf("[IOc] event name: %s\n", eventName.c_str());
-      onMessageCallback(eventName, doc[1]);
+      onMessageCallback(eventName, data);
       // Message Includes a ID for a ACK (callback)
       if (id) {
         // creat JSON message for Socket.IO (ack)
-        DynamicJsonDocument docOut(1024);
+        JsonDocument docOut;
         JsonArray array = docOut.to<JsonArray>();
 
         // add payload (parameters) for the ack (callback function)
-        JsonObject param1 = array.createNestedObject();
+        JsonObject param1 = array.add<JsonObject>();
         param1["now"] = millis();
 
         // JSON to String (serializion)
@@ -113,7 +112,7 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) 
 
 
 void setupSocket() {
-  StaticJsonDocument<64> idJWT;
+  JsonDocument idJWT;
   idJWT["sub"] = getMacAddress();
 
   String jwtObject = "";
@@ -121,10 +120,10 @@ void setupSocket() {
 
   jwt.allocateJWTMemory();
 
-  int jwtLength  = jwtObject.length() + 1;
+  int jwtLength = jwtObject.length() + 1;
   char jwtBuffer[jwtLength];
 
-  jwtObject.toCharArray(jwtBuffer,jwtLength);
+  jwtObject.toCharArray(jwtBuffer, jwtLength);
 
   jwt.encodeJWT(jwtBuffer);
 
@@ -136,7 +135,7 @@ void setupSocket() {
   const String port = SOCKET_PORT;
 
   // webSocket.beginSSL(SOCKET_URL, 81, "?token=" + jwt.out);
-  socketIO.begin(SOCKET_URL, 3000, "/socket.io/?EIO=4&token=" + (String)jwt.out);
+  socketIO.begin(SOCKET_URL, 3000, "/socket.io/?EIO=4&token=" + (String) jwt.out);
   socketIO.onEvent(socketIOEvent);
   socketIO.setReconnectInterval(5000);
 }

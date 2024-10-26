@@ -3,7 +3,7 @@
 #define IDENTIFICATION_ERROR "identification-error"
 
 #define SERVE_FOOD "serve-food"
-#define FOOD_SERVED "food-served"
+#define FOOD_SERVED_CONFIRMATION "food-served-confirmation"
 
 #define RESET_EVENT "reset"
 
